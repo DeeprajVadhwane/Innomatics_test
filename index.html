@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Exam Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
+            background: #f4f4f4; /* Light gray background instead of fullscreen image */
+            color: rgb(13, 2, 2);
+            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: url('background.jpg') no-repeat center center/cover;
+            background-size: cover;
+            backdrop-filter: blur(10px); /* Applies blur effect */
+            -webkit-backdrop-filter: blur(8px);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .container h2 {
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        input {
+            background: rgb(244, 240, 240);
+            color: black;
+        }
+        button {
+            background: #f39c12;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #e67e22;
+        }
+        .hidden {
+            display: none;
+        }
+        .exam-container {
+            text-align: center;
+            padding: 5px;
+        }
+        .timer-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
+        }
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: red;
+        }
+        .logo {
+            width: 60px;
+        }
+        iframe {
+            width: 190%;
+            height: 100vh;
+            border: none;
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container" id="loginPage">
+        <h2>Login to Start Exam</h2>
+        <img src="inno.webp" alt="Exam Instructions" width="80%">
+        <p><strong>Instructions:</strong> The exam will open in fullscreen mode, and switching tabs will result in auto-submission.</p>
+        <input type="text" id="userId" placeholder="Enter User ID">
+        <input type="password" id="password" placeholder="Enter Password">
+        <input type="text" id="formIdInput" placeholder="Enter Google Form ID">
+        <input type="number" id="timeLimitInput" placeholder="Enter Time in Minutes" min="1">
+        <button onclick="validateUser()">Login</button>
+    </div>
+
+    <div id="examPage" class="hidden">
+        <div class="timer-container">
+            <div class="timer" id="examCountdown">Time Left: 00m 00s</div>
+            <img src="innomatics.png" alt="Logo" class="logo">
+        </div>
+        <iframe id="examFrame"></iframe>
+    </div>
+
+    <script>
+        let timer;
+        let timeLeft;
+        let users = {
+            "innomatics": "innomatics123",
+            "inno": "inno123",
+            "innomatics": "batch381"
+        };
+
+        function validateUser() {
+            let userId = document.getElementById("userId").value.trim();
+            let password = document.getElementById("password").value.trim();
+            let formId = document.getElementById("formIdInput").value.trim();
+            let timeLimit = parseInt(document.getElementById("timeLimitInput").value.trim(), 10);
+
+            if (!formId) {
+                alert("Please enter a valid Google Form ID.");
+                return;
+            }
+            if (isNaN(timeLimit) || timeLimit <= 0) {
+                alert("Please enter a valid time limit in minutes.");
+                return;
+            }
+            if (users[userId] && users[userId] === password) {
+                startExam(formId, timeLimit * 60);
+            } else {
+                alert("Invalid credentials. Please try again.");
+            }
+        }
+
+        function startExam(formId, examTime) {
+            document.getElementById("loginPage").classList.add("hidden");
+            document.getElementById("examPage").classList.remove("hidden");
+            
+            let formUrl = "https://docs.google.com/forms/d/e/" + formId + "/viewform";
+            document.getElementById("examFrame").src = formUrl;
+            
+            document.documentElement.requestFullscreen().catch(err => {
+                console.warn("Fullscreen not supported.", err);
+            });
+
+            document.addEventListener("fullscreenchange", function () {
+                if (!document.fullscreenElement) {
+                    alert("Fullscreen mode is required! Exiting will end your exam.");
+                    location.reload();
+                }
+            });
+
+            timeLeft = examTime;
+            updateTimer();
+            timer = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                alert("Time is up! Please submit your form now.");
+                document.getElementById("examFrame").contentWindow.focus();
+            } else {
+                document.getElementById("examCountdown").innerText = "Time Left: " + Math.floor(timeLeft / 60) + "m " + (timeLeft % 60) + "s";
+                timeLeft--;
+            }
+        }
+
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden) {
+                alert("Tab switching detected! Your exam is now ending.");
+                clearInterval(timer);
+                location.reload();
+            }
+        });
+    </script>
+</body>
+</html>
